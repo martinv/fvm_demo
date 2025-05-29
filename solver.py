@@ -169,12 +169,8 @@ def compute_time_step(
     return time_step
 
 
-if __name__ == "__main__":
-    mesh_name = "riemann_square.msh"
-    gmsh_reader = GmshReader()
-    nodes, cell_groups = gmsh_reader.load(mesh_name)
-
-    mesh = Mesh(cell_groups, nodes)
+def run_solver(mesh):
+    nodes = mesh.node_coordinates()
 
     num_cells = mesh.cells().dof_ids.shape[0]
 
@@ -215,6 +211,20 @@ if __name__ == "__main__":
     # for iter in range(300):
     while simulation_time < max_time:
         # Process internal faces
+        """
+        for idx_face, face in enumerate(internal_faces):
+            idx_L = face.adj_cell[0]
+            idx_R = face.adj_cell[1]
+
+            u_L = U[idx_L, :]
+            u_R = U[idx_R, :]
+
+            flux = AUSM_flux(u_L, u_R, internal_normals[idx_face, :])
+
+            face_len = internal_lengths[idx_face]
+            Res[idx_L, :] = Res[idx_L, :] + face_len * flux
+            Res[idx_R, :] = Res[idx_R, :] - face_len * flux
+        """
 
         solution_update(U, Res, internal_faces,
                         internal_normals, internal_lengths)
@@ -267,6 +277,17 @@ if __name__ == "__main__":
 
     end_time = time.time()
     print(f"Computation took {end_time - start_time} seconds")
+
+    return U
+
+
+if __name__ == "__main__":
+    mesh_name = "riemann_square.msh"
+    gmsh_reader = GmshReader()
+    nodes, cell_groups = gmsh_reader.load(mesh_name)
+    mesh = Mesh(cell_groups, nodes)
+
+    U = run_solver(mesh)
 
     gmsh_writer = GmshWriter()
     gmsh_writer.write("riemann_output.msh", nodes, [mesh.cells()])
